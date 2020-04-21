@@ -6,6 +6,7 @@ import sys
 from evdev import InputDevice, categorize, ecodes, list_devices
 from select import select
 
+
 class Reader:
     def __init__(self):
         path = os.path.dirname(os.path.realpath(__file__))
@@ -38,7 +39,5 @@ class Reader:
             for event in self.dev.read():
                 if event.type == 1 and event.value == 1:
                     stri += self.keys[event.code]
-                    # print( keys[ event.code ] )
                     key = ecodes.KEY[event.code]
         return stri[:-1]
-

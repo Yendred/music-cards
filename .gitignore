@@ -1,0 +1,6 @@
+.vscode/launch.json
+**/**.mp3
+.vscode/settings.json
+src/test.py
+src/CardDbTest.py
+src/requirements_full.txt
