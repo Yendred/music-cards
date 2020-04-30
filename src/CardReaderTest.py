@@ -31,12 +31,13 @@ else:
             % deviceName
         )
 
-stri = ""
-key = ""
-while key != "KEY_ENTER":
-    r, w, x = select([rfidScanner], [], [])
-    for event in rfidScanner.read():
-        if event.type == 1 and event.value == 1:
-            stri += keys[event.code]
-            key = ecodes.KEY[event.code]
-print(stri[:-1])
+while True:
+    stri = ""
+    key = ""
+    while key != "KEY_ENTER":
+        r, w, x = select([rfidScanner], [], [])
+        for event in rfidScanner.read():
+            if event.type == 1 and event.value == 1:
+                stri += keys[event.code]
+                key = ecodes.KEY[event.code]
+    print(stri[:-1])

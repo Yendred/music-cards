@@ -15,20 +15,17 @@ class CardList:
         # print("starting readList()")
         with open(self.cardListPath, mode="r") as csvFile:
             reader = csv.reader(csvFile, delimiter=",")
-            cardList = {rows[0]: [rows[1], rows[2], rows[3]] for rows in reader}
+            cardList = {rows[0]: [rows[0], rows[1], rows[2]] for rows in reader}
             csvFile.close()
-        # print("ending readList()")
+            # print("ending readList()")
         return cardList
 
     def getPlaylist(self, card):
-        # print("starting getPlaylist()")
-        # self.cardList = self.readList()
         try:
-            # print(card)
-            # print(self.cardList[card])
-            # print("ending getPlaylist()")
-            return self.cardList[card]
+            if not self.cardList:
+                self.cardList = self.readList()
 
+            return self.cardList[card]
         except:
             return ""
 

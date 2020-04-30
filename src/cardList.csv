@@ -1,12 +1,18 @@
 ID,Name,Type,URI
-0000000001,Volume Up,action,setting://volume/up
-0000000002,Volume Down,action,setting://volume/down
-0000000011,Pause,action,setting://play/pause
-0000000012,Play,action,setting://play/play
-0000000013,Stop,action,setting://play/stop
-0000000014,Next,action,setting://play/next
-0000000015,Previous,action,setting://play/previous
-0002911467,Walk On the Ocean,file,file:///home/pi/music-cards/src/media/01WalkOnTheOcean.mp3
-00029114672,Fall Down,file,file:///home/pi/music-cards/src/media/09FallDown.mp3
-0002911458,Fall Down,URL,https://www.youtube.com/watch?v=eBG7P-K-r1Y
-00029114582,Wind mills,file,file:///home/pi/music-cards/src/media/07Windmills.mp3
+0002933058,Reboot Pi,system://pi/reboot
+0002933057,Shutdown Pi,system://pi/shutdown
+0002933292,Volume Up,setting://volume/up/10
+0002933291,Volume Down,setting://volume/down/10
+0002933270,Pause,action://action/pause
+0002933269,Play,action://action/play
+0002929617,Stop,action://action/stop
+0002929612,Next,action://action/next
+0002915856,Previous,action://action/previous
+0002911467,Walk On the Ocean,file:///home/pi/media/music/01WalkOnTheOcean.mp3
+0002915877,Everlong,file:///home/pi/media/music/Foo_Fighters_-_Everlong_Official_Music_Video.mp3
+0002915878,Windmills,file:///home/pi/media/music/07Windmills.mp3
+0002915899,Fall Down,file:///home/pi/media/music/09FallDown.mp3
+0002915900,All I want,file:///home/pi/media/music/10AllIWant.mp3
+0002911458,Learn To Fly,https://www.youtube.com/watch?v=1VQ_3sBZEm0
+0000000000,Nothing,music/null.mp3
+0000000001,Fall Down,https://www.youtube.com/watch?v=eBG7P-K-r1Y

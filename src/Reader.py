@@ -21,10 +21,10 @@ class Reader:
             devices = [InputDevice(fn) for fn in list_devices()]
             for device in devices:
                 if device.name == deviceName:
-                    self.dev = device
+                    self.rfidDevice = device
                     break
             try:
-                self.dev
+                self.rfidDevice
             except:
                 sys.exit(
                     "Could not find the device %s\n. Make sure is connected"
@@ -35,8 +35,9 @@ class Reader:
         stri = ""
         key = ""
         while key != "KEY_ENTER":
-            r, w, x = select([self.dev], [], [])
-            for event in self.dev.read():
+            # print(f"Key: {key}")
+            r, w, x = select([self.rfidDevice], [], [])
+            for event in self.rfidDevice.read():
                 if event.type == 1 and event.value == 1:
                     stri += self.keys[event.code]
                     key = ecodes.KEY[event.code]
