@@ -17,6 +17,6 @@ while continue_reading:
     if plist == "q":
         break
     cardList.addPlaylist(card, plist)
-    print("Added: " + card + " : " + plist)
+    print(f"Added: {card} : {plist})
 
 print("Done.")
