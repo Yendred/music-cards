@@ -447,7 +447,7 @@ class Box:
             ):
                 if currentSong.get("name") is None:
                     currentSong = cardName
-                print(f"\tSame card: '{currentSong}'")
+                print(f"\tSame card: '{currentSong.get('name')}'")
                 if client.status().get("state") == "play":
                     print("\tPausing the music")
                     client.pause()
