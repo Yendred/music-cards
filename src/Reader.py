@@ -1,10 +1,10 @@
-import string
 import csv
 import os.path
+import string
 import sys
+from select import select
 
 from evdev import InputDevice, categorize, ecodes, list_devices
-from select import select
 
 
 class Reader:

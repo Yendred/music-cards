@@ -1,17 +1,19 @@
 #!/usr/bin/python3
 # from __future__ import unicode_literals
-from mpd import MPDClient
+import hashlib
+import os
+import random
+import re
+import subprocess
+import sys
+import time
 from pathlib import Path
-from CardList import CardList
-from Reader import Reader
 
 import youtube_dl
-import re
-import sys
-import subprocess
-import os
-import time
-import hashlib, random
+from mpd import MPDClient
+
+from CardList import CardList
+from Reader import Reader
 
 ROOT_PATH = os.path.dirname(os.path.realpath(__file__))
 MEDIA_PATH = os.path.join(Path.home(), "media")  # ~/media
@@ -20,13 +22,11 @@ MUSIC_DIR_PATH = os.path.join(MEDIA_PATH, "music")  # ~/media/music
 TMP_PATH = os.path.join(MEDIA_PATH, "tmp")  # ~/media/tmp
 CACHE_PATH = os.path.join(MEDIA_PATH, "cache")  # ~/media/cache
 MUSIC_DIR_MAX_MEGABYTES = 500
-START_VOLUME = 20
+START_VOLUME = 30
 
 
 class Box:
     def __init__(self):
-        print(f"Starting")
-
         for filePath in [
             MEDIA_PATH,
             TRACK_DIR_PATH,
@@ -34,12 +34,17 @@ class Box:
             TMP_PATH,
             CACHE_PATH,
         ]:
-            if not os.path.exists(filePath):
-                print(f"Creating {filePath}")
-                Path.mkdir(filePath, exist_ok=True)
-                Path.chmod(filePath, 0o755)
-            # else:
-            #     print(f"Folder exists: {filePath}")
+            try:
+                if not Path(filePath).exists():
+                    print(f"Creating {filePath}")
+                    Path(filePath).mkdir(mode=0o755, parents=True)
+
+            except:  # Exception as e:
+                print(f"Failed to create {filePath}")
+                pass
+
+            finally:
+                pass
 
     def connectMPD(self):
         try:
@@ -53,6 +58,8 @@ class Box:
         except:
             print("Could not connect to MPD server")
             # sys.exit(10)
+        finally:
+            pass
 
     def GetMusicDirSizeMegabytes(self):
         output = 0
@@ -74,6 +81,8 @@ class Box:
         except:
             print(f"Returning 0, Could not determine the folder size of '{output}'")
             return 0
+        finally:
+            pass
 
     def GetAbsoluteFilepath(self, trackNameDecoded):
         return os.path.join(MUSIC_DIR_PATH, trackNameDecoded)
@@ -101,6 +110,8 @@ class Box:
         except:
             print("EXCEPTION:  Could not find oldest track")
             return ""
+        finally:
+            pass
 
         return self.GetAbsoluteFilepath(output)
 
@@ -115,7 +126,7 @@ class Box:
         try:
             while self.GetMusicDirSizeMegabytes() > maxTotalMegabytes:
                 oldestFilePath = self.GetOldestTrackFilePath()
-                if os.path.exists(oldestFilePath) == False:
+                if not os.path.exists(oldestFilePath):
                     break
 
                 os.unlink(oldestFilePath)
@@ -124,7 +135,9 @@ class Box:
                     break
 
         except Exception as e:
-            print(f"PruneOldTracks: unknown exception: {e}")
+            print(f"PruneOldTracks: Unknown Exception: {e}")
+            pass
+        finally:
             pass
 
         return deleteCount
@@ -159,83 +172,93 @@ class Box:
                 localPath = musicURI.replace("file:///home/pi/media/", "")
                 # print(f"getting relative local file '{localPath}'")
 
+                client.stop()
+                client.clear()
+
             elif "https://" in musicURI:
-                # TODO: Come back to this.  It is still a little fragile and may not work.
+                if not "youtube.com" in musicURI:
+                    localPath = musicURI
 
-                # Download the music from youtube
-                print(f"downloading URL '{musicURI}'")
+                    client.stop()
+                    client.clear()
 
-                # Generate a unique tmp path and ensure it exists
-                # and has the right permissions.
-                while True:
-                    # Create a temp folder to download the file to
-                    tempFileName = hashlib.md5(
-                        str(random.random()).encode("utf-8")
-                    ).hexdigest()
+                else:
 
-                    uniqueTmpPath = os.path.join(TMP_PATH, tempFileName)
-                    print(f"uniqueTmpPath: '{uniqueTmpPath}'")
-                    if not os.path.exists(uniqueTmpPath):
-                        break
+                    # TODO: Come back to this.  It is still a little fragile and may not work.
 
-                # ydl_opts = {
-                #     "format": "bestaudio/best",
-                #     "outtmpl": os.path.join(uniqueTmpPath, "%(title)s.%(ext)s"),
-                #     "noplaylist": True,
-                # }
+                    # Download the music from youtube
+                    print(f"downloading URL '{musicURI}'")
 
-                # with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                #     ydl.download([musicURI])
+                    # Generate a unique tmp path and ensure it exists
+                    # and has the right permissions.
+                    while True:
+                        # Create a temp folder to download the file to
+                        tempFileName = hashlib.md5(
+                            str(random.random()).encode("utf-8")
+                        ).hexdigest()
 
-                ydl_opts = {
-                    "format": "bestaudio",
-                    "outtmpl": os.path.join(uniqueTmpPath, "%(title)s.%(ext)s"),
-                    "cachedir": CACHE_PATH,
-                    "noplaylist": True,
-                    "restrictfilenames": "true",
-                    # "extractaudio": True,
-                    # "audioformat": "mp3",
-                    "ignoreerrors": True,
-                    "no_color": True,
-                    "call_home": False,
-                    "postprocessors": [
-                        {
-                            "key": "FFmpegExtractAudio",
-                            "preferredcodec": "mp3",
-                            "preferredquality": "192",
-                        },
-                        {"key": "FFmpegMetadata",},
-                    ],
-                }
+                        uniqueTmpPath = os.path.join(TMP_PATH, tempFileName)
+                        print(f"uniqueTmpPath: '{uniqueTmpPath}'")
+                        if not os.path.exists(uniqueTmpPath):
+                            break
 
-                with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-                    result = ydl.download([musicURI])
+                    # ydl_opts = {
+                    #     "format": "bestaudio/best",
+                    #     "outtmpl": os.path.join(uniqueTmpPath, "%(title)s.%(ext)s"),
+                    #     "noplaylist": True,
+                    # }
 
-                # Get path of downloaded file
-                # TODO:  Need to figure out how to get the full path of the downloaded file.
+                    # with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                    #     ydl.download([musicURI])
 
-                # Move file to TRACK_DIR_PATH
-                # TODO:  Need to move the file downloaded to the MUSIC_DIR_PATH
+                    ydl_opts = {
+                        "format": "bestaudio",
+                        "outtmpl": os.path.join(uniqueTmpPath, "%(title)s.%(ext)s"),
+                        "cachedir": CACHE_PATH,
+                        "noplaylist": True,
+                        "restrictfilenames": True,
+                        # "extractaudio": True,
+                        # "audioformat": "mp3",
+                        "ignoreerrors": True,
+                        "no_color": True,
+                        "call_home": False,
+                        "postprocessors": [
+                            {
+                                "key": "FFmpegExtractAudio",
+                                "preferredcodec": "mp3",
+                                "preferredquality": "192",
+                            },
+                            {"key": "FFmpegMetadata",},
+                        ],
+                    }
 
-                localPath = ""
+                    with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                        result = ydl.download([musicURI])
+
+                    # Get path of downloaded file
+                    # TODO:  Need to figure out how to get the full path of the downloaded file.
+
+                    # Move file to TRACK_DIR_PATH
+                    # TODO:  Need to move the file downloaded to the MUSIC_DIR_PATH
+
+                    client.update()
+                    client.rescan()
+                    client.stop()
+                    client.clear()
+                    localPath = ""
 
             else:
                 print(f"Dont know what to do here with URI '{musicURI}'")
                 return
 
             if localPath != None and localPath != "":
-                print(f"Playing: '{musicName}'")
-                client.stop()
-                client.clear()
-                # Add file to mpc add <youtube-file>
+                print(f"\tAdding:\t'{musicName}'")
                 client.add(localPath)
-                client.random(1)
-                client.repeat(1)
                 client.play()
 
         except Exception as e:
             print(f"Could not play '{musicData}'")
-            print(f"ClearAndPlay: unknown exception: {e}")
+            print(f"ClearAndPlay: Unknown Exception (Ignorring): {e}")
             pass
 
         finally:
@@ -268,6 +291,9 @@ class Box:
                 # client.add("file:///home/pi/ready.mp3")
 
                 client.repeat(0)
+                client.random(0)
+
+                client.crossfade(2)
                 # client.play()
                 #  time.sleep(2)
             connectTry = connectTry + 1
@@ -285,9 +311,20 @@ class Box:
                 localClientInstance = True
 
             clientStatus = client.status()
-            print(f"Status: {clientStatus}")
+            # print(f"Status: {clientStatus}")
             for key in clientStatus:
-                print(f"{key.ljust(14,' ')} --> {clientStatus[key]}")
+                try:
+                    print(f"status\t{key.ljust(14,' ')} --> {clientStatus[key]}")
+                except:
+                    pass
+
+            currentsong = client.currentsong()
+            # print(f"Status: {clientStatus}")
+            for key in currentsong:
+                try:
+                    print(f"song\t{key.ljust(14,' ')} --> {currentsong[key]}")
+                except:
+                    pass
         except:  # Exception as e:
             # We should not care about this exception, continue
             # print(f"printStatus: unknown exception: {e}")
@@ -295,16 +332,14 @@ class Box:
         finally:
             if localClientInstance and client:
                 client.close()
+                client.disconnect()
 
     def ProcessCard(self, client, cardData, sameAsPreviousCard):
 
         # print(f"Card Data found : '{cardData}'")
         # cardID = cardData[0]
-        # cardName = cardData[1]
+        cardName = cardData[1]
         cardURI = cardData[2]
-
-        # print(f"Client Status '{ client.status() }'")
-        # print("Connected to MPD Server")
 
         if "system://" in cardURI:
             # print(f"System card found.\t{cardURI}")
@@ -321,7 +356,7 @@ class Box:
         elif "setting://" in cardURI:
             # print(f"Settings card found.\t{cardURI}")
 
-            if "volume" in cardURI:
+            if "setting://volume" in cardURI:
                 try:
                     # print(f"Volume card found.\t{cardURI}")
 
@@ -365,6 +400,8 @@ class Box:
                 except Exception as e:
                     print(f"Failed to set volume: {e}")
                     pass
+                finally:
+                    pass
 
         elif "action://" in cardURI:
             try:
@@ -377,61 +414,69 @@ class Box:
 
                 currentVolume = client.status().get("volume")
                 # print(f"State:'{client.status().get('state')}'")
-                if "pause" in cardURI:
+                if "action://action/pause" == cardURI:
                     # print("Pausing")
                     client.pause()
-                elif "play" in cardURI:
+                elif "action://action/play" == cardURI:
                     # print("Playing")
                     client.play()
-                elif "stop" in cardURI:
+                elif "action://action/stop" == cardURI:
                     # print("Stopping")
                     client.stop()
-                elif "next" in cardURI:
-                    pass
-                elif "previous" in cardURI:
-                    pass
+                elif "action://action/next" == cardURI:
+                    # TODO: need to address playlists
+                    client.Next()
+                elif "action://action/previous" == cardURI:
+                    # TODO: need to address playlists
+                    client.Previous()
                 # print(f"State:'{client.status().get('state')}'")
 
             except:
                 print(f"Failed to set playable action")
                 pass
+            finally:
+                pass
 
         #  This must be "file://" or "https://"  TODO: We should check
         else:
-            # print(f"Music card found.\t{cardURI}")
-            if sameAsPreviousCard:
-                print("Same card.")
+            currentSong = client.currentsong()
+            if (
+                currentSong
+                and currentSong.get("file") in cardURI
+                and sameAsPreviousCard
+            ):
+                if currentSong.get("name") is None:
+                    currentSong = cardName
+                print(f"\tSame card: '{currentSong}'")
                 if client.status().get("state") == "play":
-                    print("Pausing the music")
-                    client.pause(1)
+                    print("\tPausing the music")
+                    client.pause()
                 else:
-                    print("Resuming the music")
-                    client.pause(0)
-                print(
-                    f"\tClient Status:  Volume:'{client.status().get('volume')}'\tState:'{client.status().get('state')}'"
-                )
+                    print("\tResuming the music")
+                    client.play()
             else:
                 # print("Playing a new song")
                 self.ClearAndPlay(client, cardData)
+                return True
+
+        return False
 
     def main(self):
         reader = Reader()
         cardList = CardList()
 
         before_card = None
-        before_volume = None
 
         # make sure the MPD Server is responding
         client = self.initalizeMDP()
-        # self.printStatus(client)
 
         cardData = "empty"
         while True:
             try:
                 card = ""
 
-                print("\nReady: place a card on top of the reader")
-                print(f"\tBefore_card:'{before_card}'\tbefore_volume:'{before_volume}'")
+                print("Ready: place a card on top of the reader")
+                # print(f"\tBefore_card:'{before_card}'")
 
                 card = reader.readCard()
                 # print(f"Card read: '{card}'")
@@ -453,15 +498,23 @@ class Box:
                     else:
                         # The card is valid and we found data in the DB for this card, awesome!
                         client = self.connectMPD()
-                        self.ProcessCard(client, cardData, card == before_card)
-                        before_card = card
-                        card = ""
 
-                        # print(f"\tClient Status:  Volume:'{client.status().get('volume')}'\tState:'{client.status().get('state')}'")
-                        # print("Closing client")
+                        # returns false if the card is not a song (System/Setting/Action), otherwise true
+                        if self.ProcessCard(client, cardData, card == before_card):
+                            before_card = card
+                            card = ""
+
+                            currentSong = cardData[1]
+                            if client.currentsong().get("name"):
+                                currentSong = client.currentsong().get("name")
+
+                        print(
+                            f"\tClient Status:\tPlaying:'{currentSong}'\tVolume:'{client.status().get('volume')}'\tState:'{client.status().get('state')}'\n"
+                        )
 
                         client.close()
-
+                        client.disconnect()
+                        client = None
             except KeyboardInterrupt:
                 sys.exit(0)
 
@@ -475,23 +528,19 @@ class Box:
             #     time.sleep(0.2)
 
             except Exception as e:
-                print(f"unknown exception: {e}")
+                print(f"main: Unknown Exception: {e}")
                 time.sleep(2)
                 pass
 
             finally:
-                if client:
-                    try:
-                        # self.printStatus(client)
-                        client.close()
-                    except:
-                        pass
-
-
-def main():
-    app = Box()
-    app.main()
+                # self.printStatus(None)
+                pass
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        app = Box()
+        app.main()
+    except Exception as ex:
+        print(f"global: Unhandled Exception Exiting.... {ex}")
+        sys.exit(100)

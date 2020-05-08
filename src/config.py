@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import os.path
+
 from evdev import InputDevice, list_devices
 
 i = 0

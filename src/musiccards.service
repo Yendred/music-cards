@@ -1,12 +1,13 @@
 [Unit]
 Description=MusicCards
+Requires=mpd.service
 After=network.target
 
 [Service]
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/music-cards
-ExecStart=/usr/bin/python -u /home/pi/music-cards/box.py
+ExecStart=/usr/bin/python3 -u /home/pi/src/music-cards/src/box.py
 Restart=always
 RestartSec=5
 
