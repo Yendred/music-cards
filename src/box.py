@@ -68,12 +68,6 @@ class Box:
                 ["du", "-m", MUSIC_DIR_PATH], capture_output=True
             )
 
-            # print(f"rawOutput: {rawOutput}")
-            # decoded = rawOutput.stdout.decode("ascii")
-            # print(f"decoded: {decoded}")
-            # asciiArray = decoded.split("\t")
-            # print(f"asciiArray: {asciiArray}")
-
             output = rawOutput.stdout.decode("ascii").split("\t")[0].strip()
             # print(f"GetMusicDirSizeMegabytes: output: '{output}'")
             return int(output)
@@ -276,30 +270,35 @@ class Box:
         Instance of the MPC Client
 
         """
-        connectTry = 1
-        client = None
-        while not client and connectTry <= 5:
-            client = self.connectMPD()
-            # print(type(client))
-            # print(client.mpd_version)  # print the MPD version
+        try:
+            connectTry = 1
+            client = None
+            while not client and connectTry <= 5:
+                client = self.connectMPD()
+                # print(type(client))
+                # print(client.mpd_version)  # print the MPD version
 
-            if not client:
-                time.sleep(2)
-            else:
-                client.setvol(START_VOLUME)
-                client.clear()
-                # client.add("file:///home/pi/ready.mp3")
+                if not client:
+                    time.sleep(2)
+                else:
+                    client.setvol(START_VOLUME)
+                    client.clear()
+                    # client.add("file:///home/pi/ready.mp3")
 
-                client.repeat(0)
-                client.random(0)
+                    client.repeat(0)
+                    client.random(0)
 
-                client.crossfade(2)
-                # client.play()
-                #  time.sleep(2)
-            connectTry = connectTry + 1
+                    client.crossfade(2)
+                    # client.play()
+                    #  time.sleep(2)
+                connectTry = connectTry + 1
 
-        if client == None or connectTry > 5:
-            sys.exit("Failed to create a connection to the MPD server, Exiting!!!")
+            if client == None or connectTry > 5:
+                sys.exit("Failed to create a connection to the MPD server, Exiting!!!")
+
+        except Exception as e:
+            print(f"initalizeMDP: Unknown Exception (Ignoring): {e}")
+            raise
 
         return client
 
@@ -329,135 +328,144 @@ class Box:
             # We should not care about this exception, continue
             # print(f"printStatus: unknown exception: {e}")
             pass
+
         finally:
             if localClientInstance and client:
                 client.close()
                 client.disconnect()
 
     def ProcessCard(self, client, cardData, sameAsPreviousCard):
+        try:
+            # print(f"Card Data found : '{cardData}'")
+            # cardID = cardData[0]
+            cardName = cardData[1]
+            cardURI = cardData[2]
 
-        # print(f"Card Data found : '{cardData}'")
-        # cardID = cardData[0]
-        cardName = cardData[1]
-        cardURI = cardData[2]
+            if "system://" in cardURI:
+                # print(f"System card found.\t{cardURI}")
 
-        if "system://" in cardURI:
-            # print(f"System card found.\t{cardURI}")
+                if "reboot" in cardURI:
+                    # print(f"Rebooting Pi: {cardURI}")
+                    os.system("sudo shutdown -r now")
+                elif "shutdown" in cardURI:
+                    # print(f"Shutting down PI: {cardURI}")
+                    os.system("sudo shutdown -P now")
+                else:
+                    print(f"Unknown System Card: {cardURI}")
 
-            if "reboot" in cardURI:
-                # print(f"Rebooting Pi: {cardURI}")
-                os.system("sudo shutdown -r now")
-            elif "shutdown" in cardURI:
-                # print(f"Shutting down PI: {cardURI}")
-                os.system("sudo shutdown -P now")
-            else:
-                print(f"Unknown System Card: {cardURI}")
+            elif "setting://" in cardURI:
+                # print(f"Settings card found.\t{cardURI}")
 
-        elif "setting://" in cardURI:
-            # print(f"Settings card found.\t{cardURI}")
+                if "setting://volume" in cardURI:
+                    try:
+                        # print(f"Volume card found.\t{cardURI}")
 
-            if "setting://volume" in cardURI:
-                try:
-                    # print(f"Volume card found.\t{cardURI}")
+                        volume = 0
+                        direction = "down"
 
-                    volume = 0
-                    direction = "down"
+                        splitURI = cardURI.split("/")
+                        if len(splitURI) >= 2:
+                            volume = int(splitURI[len(splitURI) - 1])
+                            direction = splitURI[len(splitURI) - 2]
 
-                    splitURI = cardURI.split("/")
-                    if len(splitURI) >= 2:
-                        volume = int(splitURI[len(splitURI) - 1])
-                        direction = splitURI[len(splitURI) - 2]
+                        currentVolume = int(client.status().get("volume"))
 
-                    currentVolume = int(client.status().get("volume"))
+                        if not currentVolume:
+                            currentVolume = START_VOLUME
 
-                    if not currentVolume:
-                        currentVolume = START_VOLUME
+                        # round to nearest multiple of 5
+                        currentVolume = 5 * round(currentVolume / 5)
 
-                    # round to nearest multiple of 5
-                    currentVolume = 5 * round(currentVolume / 5)
+                        # print(f"Current Volume : \t{currentVolume}")
+                        if currentVolume:
+                            if "up" == direction:
+                                newVolume = currentVolume + volume
+                            else:
+                                newVolume = currentVolume - volume
 
-                    # print(f"Current Volume : \t{currentVolume}")
-                    if currentVolume:
-                        if "up" == direction:
-                            newVolume = currentVolume + volume
+                            if newVolume < 0 or newVolume > 100:
+                                newVolume = 0
+                            if newVolume > 100:
+                                newVolume = 100
+
+                            # print(f"New Volume : \t{newVolume}")
+                            client.setvol(newVolume)
+                            currentVolume = client.status().get("volume")
+                            # print(f"New Volume : \t{ currentVolume }")
                         else:
-                            newVolume = currentVolume - volume
+                            print(
+                                "Could not determine the current Volume, keeping current volume"
+                            )
 
-                        if newVolume < 0 or newVolume > 100:
-                            newVolume = 0
-                        if newVolume > 100:
-                            newVolume = 100
+                    except Exception as e:
+                        print(f"Failed to set volume: {e}")
+                        pass
+                    finally:
+                        pass
 
-                        # print(f"New Volume : \t{newVolume}")
-                        client.setvol(newVolume)
-                        currentVolume = client.status().get("volume")
-                        # print(f"New Volume : \t{ currentVolume }")
-                    else:
-                        print(
-                            "Could not determine the current Volume, keeping current volume"
-                        )
+            elif "action://" in cardURI:
+                try:
+                    # print(f"Play card found.\t{cardURI}")
+                    # 0002933270,Pause,action,action://action/pause
+                    # 0002933269,Play,action,action://action/play
+                    # 0002929617,Stop,action,action://action/stop
+                    # 0002929612,Next,action,action://action/next
+                    # 0002915856,Previous,action,action://action/previous
 
-                except Exception as e:
-                    print(f"Failed to set volume: {e}")
+                    currentVolume = client.status().get("volume")
+                    # print(f"State:'{client.status().get('state')}'")
+                    if "action://action/pause" == cardURI:
+                        # print("Pausing")
+                        client.pause()
+                    elif "action://action/play" == cardURI:
+                        # print("Playing")
+                        client.play()
+                    elif "action://action/stop" == cardURI:
+                        # print("Stopping")
+                        client.stop()
+                    elif "action://action/next" == cardURI:
+                        # TODO: need to address playlists
+                        client.Next()
+                    elif "action://action/previous" == cardURI:
+                        # TODO: need to address playlists
+                        client.Previous()
+                    # print(f"State:'{client.status().get('state')}'")
+
+                except:
+                    print(f"Failed to set playable action")
                     pass
                 finally:
                     pass
 
-        elif "action://" in cardURI:
-            try:
-                # print(f"Play card found.\t{cardURI}")
-                # 0002933270,Pause,action,action://action/pause
-                # 0002933269,Play,action,action://action/play
-                # 0002929617,Stop,action,action://action/stop
-                # 0002929612,Next,action,action://action/next
-                # 0002915856,Previous,action,action://action/previous
-
-                currentVolume = client.status().get("volume")
-                # print(f"State:'{client.status().get('state')}'")
-                if "action://action/pause" == cardURI:
-                    # print("Pausing")
-                    client.pause()
-                elif "action://action/play" == cardURI:
-                    # print("Playing")
-                    client.play()
-                elif "action://action/stop" == cardURI:
-                    # print("Stopping")
-                    client.stop()
-                elif "action://action/next" == cardURI:
-                    # TODO: need to address playlists
-                    client.Next()
-                elif "action://action/previous" == cardURI:
-                    # TODO: need to address playlists
-                    client.Previous()
-                # print(f"State:'{client.status().get('state')}'")
-
-            except:
-                print(f"Failed to set playable action")
-                pass
-            finally:
-                pass
-
-        #  This must be "file://" or "https://"  TODO: We should check
-        else:
-            currentSong = client.currentsong()
-            if (
-                currentSong
-                and currentSong.get("file") in cardURI
-                and sameAsPreviousCard
-            ):
-                if currentSong.get("name") is None:
-                    currentSong = cardName
-                print(f"\tSame card: '{currentSong.get('name')}'")
-                if client.status().get("state") == "play":
-                    print("\tPausing the music")
-                    client.pause()
-                else:
-                    print("\tResuming the music")
-                    client.play()
+            #  This must be "file://" or "https://"  TODO: We should check
             else:
-                # print("Playing a new song")
-                self.ClearAndPlay(client, cardData)
-                return True
+                currentSong = client.currentsong()
+                if (
+                    currentSong
+                    and currentSong.get("file") in cardURI
+                    and sameAsPreviousCard
+                ):
+                    # internet based streams do not populate the name propert
+                    # immediately, so we will shove something in here until it is popilated
+                    if currentSong and currentSong.get("name") is None:
+                        currentSong["name"] = cardName
+
+                    print(f"\tSame card: '{currentSong.get('name')}'")
+                    if client.status().get("state") == "play":
+                        print("\tPausing the music")
+                        client.pause()
+                    else:
+                        print("\tResuming the music")
+                        client.play()
+                else:
+                    # print("Playing a new song")
+                    self.ClearAndPlay(client, cardData)
+                    return True
+
+        except Exception as e:
+            # We should not care about this exception, continue
+            print(f"ProcessCard: unknown exception: {e}")
+            raise
 
         return False
 
@@ -517,15 +525,6 @@ class Box:
                         client = None
             except KeyboardInterrupt:
                 sys.exit(0)
-
-            # except ValueError:
-            #     print("this card is new")
-            #     print("need to Set a playlist")
-            #     # reader.released_Card()
-
-            # except OSError as e:
-            #     print(f"Execution failed: {e}")
-            #     time.sleep(0.2)
 
             except Exception as e:
                 print(f"main: Unknown Exception: {e}")
