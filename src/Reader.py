@@ -4,7 +4,7 @@ import string
 import sys
 from select import select
 
-from evdev import InputDevice, categorize, ecodes, list_devices
+from evdev import InputDevice, ecodes, list_devices
 
 
 class Reader:
@@ -13,23 +13,23 @@ class Reader:
         self.keys = (
             "X^1234567890XXXXqwertzuiopXXXXasdfghjklXXXXXyxcvbnmXXXXXXXXXXXXXXXXXXXXXXX"
         )
-        if not os.path.isfile(path + "/deviceName.txt"):
+        if not os.path.isfile(os.path.join(path, "deviceName.txt")):
             sys.exit("Please run config.py first")
-        else:
-            with open(path + "/deviceName.txt", "r") as f:
-                deviceName = f.read()
-            devices = [InputDevice(fn) for fn in list_devices()]
-            for device in devices:
-                if device.name == deviceName:
-                    self.rfidDevice = device
-                    break
-            try:
-                self.rfidDevice
-            except:
-                sys.exit(
-                    "Could not find the device %s\n. Make sure is connected"
-                    % deviceName
-                )
+
+        with open(os.path.join(path, "deviceName.txt"), "r") as f:
+            deviceName = f.read()
+
+        devices = [InputDevice(fn) for fn in list_devices()]
+        for device in devices:
+            if device.name == deviceName:
+                self.rfidDevice = device
+                break
+        try:
+            self.rfidDevice
+        except:
+            sys.exit(
+                f"Could not find the device '{deviceName}'.\nMake sure it is connected and you are in the 'input' group"
+            )
 
     def readCard(self):
         stri = ""

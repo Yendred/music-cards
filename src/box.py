@@ -144,10 +144,10 @@ class Box:
             musicName = None
             musicURI = None
 
-            # we must have all the data or we could run into issues, so if we dont have all the data, than bail
+            # we must have all the data or we could run into issues, so if we don't have all the data, than bail
             if len(musicData) != 3:
                 print(
-                    f"Data inconsistencies, we should have 3 peices of data and we seem to ony have {len(musicData)}"
+                    f"Data inconsistencies, we should have 3 pieces of data and we seem to ony have {len(musicData)}"
                 )
                 return
 
@@ -242,7 +242,7 @@ class Box:
                     localPath = ""
 
             else:
-                print(f"Dont know what to do here with URI '{musicURI}'")
+                print(f"Don't know what to do here with URI '{musicURI}'")
                 return
 
             if localPath != None and localPath != "":
@@ -259,7 +259,7 @@ class Box:
             # print(f"Exiting ClearAndPlay")
             pass
 
-    def initalizeMDP(self):
+    def initializeMDP(self):
         """
         We want to make sure that the MPD server is responding
 
@@ -297,7 +297,7 @@ class Box:
                 sys.exit("Failed to create a connection to the MPD server, Exiting!!!")
 
         except Exception as e:
-            print(f"initalizeMDP: Unknown Exception (Ignoring): {e}")
+            print(f"initializeMDP: Unknown Exception (Ignoring): {e}")
             raise
 
         return client
@@ -476,7 +476,7 @@ class Box:
         before_card = None
 
         # make sure the MPD Server is responding
-        client = self.initalizeMDP()
+        client = self.initializeMDP()
 
         cardData = "empty"
         while True:
@@ -540,6 +540,8 @@ if __name__ == "__main__":
     try:
         app = Box()
         app.main()
+    except SystemExit as se:
+        print(se)
     except Exception as ex:
         print(f"global: Unhandled Exception Exiting.... {ex}")
         sys.exit(100)
